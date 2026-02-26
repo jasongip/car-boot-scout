@@ -3,121 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BootFair Scout V4 | Ultra Fast</title>
+    <title>BootFair Scout V5 | Pro Stability</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #000; color: #fff; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
-        .scanner-line { height: 2px; background: #10b981; position: absolute; width: 100%; animation: scan 2s infinite linear; box-shadow: 0 0 15px #10b981; }
-        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
+        body { font-family: 'Inter', sans-serif; background-color: #000; color: #fff; -webkit-tap-highlight-color: transparent; }
+        .loading-ring { border: 4px solid rgba(16, 185, 129, 0.1); border-top: 4px solid #10b981; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
-    <div id="app" class="min-h-screen flex flex-col max-w-md mx-auto bg-black relative">
+    <div id="app" class="min-h-screen flex flex-col max-w-md mx-auto bg-black relative shadow-2xl">
         
         <!-- API Setup -->
-        <div v-if="!apiKey" class="p-8 flex-1 flex flex-col justify-center z-50 bg-black">
-            <h1 class="text-3xl font-black italic mb-2 tracking-tighter">BOOTFAIR <span class="text-emerald-500">SCOUT</span></h1>
-            <p class="text-zinc-500 mb-8 text-sm uppercase font-bold">UK Market Arbitrage Tool</p>
+        <div v-if="!apiKey" class="p-8 flex-1 flex flex-col justify-center bg-zinc-950">
+            <h1 class="text-4xl font-black italic mb-2 tracking-tighter uppercase text-emerald-500">Scout Boot</h1>
+            <p class="text-zinc-500 mb-10 text-xs font-bold uppercase tracking-widest">Advanced Arbitrage Assistant</p>
             <input v-model="tempKey" type="password" placeholder="Enter Gemini API Key" 
-                class="bg-zinc-900 border border-white/10 p-5 rounded-3xl w-full mb-4 focus:border-emerald-500 outline-none text-xl">
-            <button @click="saveKey" class="bg-emerald-500 text-black font-black py-5 rounded-3xl uppercase tracking-widest shadow-lg">Start Scouting</button>
+                class="bg-zinc-900 border border-white/10 p-5 rounded-3xl w-full mb-4 focus:border-emerald-500 outline-none text-xl transition-all">
+            <button @click="saveKey" class="bg-emerald-500 text-black font-black py-5 rounded-3xl uppercase tracking-[0.2em] shadow-lg active:scale-95 transition-all">Initialise</button>
         </div>
 
         <template v-else>
             <!-- Header -->
-            <header class="p-4 flex justify-between items-center border-b border-white/10 bg-black/80 backdrop-blur-md z-40">
-                <h1 class="text-lg font-black italic tracking-tighter">BOOTFAIR <span class="text-emerald-500">SCOUT</span></h1>
-                <button @click="resetKey" class="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">Reset Key</button>
+            <header class="p-4 flex justify-between items-center border-b border-white/5 bg-black/90 backdrop-blur-xl sticky top-0 z-50">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                    <h1 class="font-black italic tracking-tighter text-sm uppercase">Scout <span class="text-emerald-500 text-xs italic opacity-80">v5.0</span></h1>
+                </div>
+                <button @click="resetKey" class="text-[9px] font-black text-zinc-600 uppercase tracking-tighter border border-white/5 px-2 py-1 rounded">Reset Session</button>
             </header>
 
             <main class="flex-1 relative flex flex-col p-4 overflow-hidden">
-                <!-- Camera View -->
-                <div v-show="!result" class="relative flex-1 rounded-[40px] overflow-hidden border border-white/10 bg-zinc-900 shadow-2xl">
+                <!-- Scanner View -->
+                <div v-show="!result" class="relative flex-1 rounded-[45px] overflow-hidden border border-white/10 bg-zinc-900 shadow-inner">
                     <video ref="video" autoplay playsinline class="w-full h-full object-cover"></video>
                     
-                    <!-- Scanning UI Overlay -->
-                    <div class="absolute inset-0 pointer-events-none border-[30px] border-black/20">
-                        <div class="absolute inset-4 border border-emerald-500/30 rounded-2xl overflow-hidden">
-                            <div v-if="!loading" class="scanner-line"></div>
+                    <!-- Viewfinder -->
+                    <div v-if="!loading" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div class="w-64 h-80 border-2 border-emerald-500/20 rounded-[40px] relative shadow-[0_0_100px_rgba(0,0,0,0.5)]">
+                            <div class="absolute -top-1 -left-1 w-10 h-10 border-t-4 border-l-4 border-emerald-500 rounded-tl-[20px]"></div>
+                            <div class="absolute -bottom-1 -right-1 w-10 h-10 border-b-4 border-r-4 border-emerald-500 rounded-br-[20px]"></div>
                         </div>
                     </div>
 
-                    <!-- Loading State -->
-                    <div v-if="loading" class="absolute inset-0 bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center text-center p-8 z-50">
-                        <div class="w-20 h-20 mb-8 relative">
-                            <div class="absolute inset-0 border-4 border-emerald-500/20 rounded-full"></div>
-                            <div class="absolute inset-0 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                        <h3 class="text-2xl font-black italic text-emerald-500 mb-2 uppercase tracking-tighter">{{ loadingStep }}</h3>
-                        <p class="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] animate-pulse">Please wait, checking market...</p>
+                    <!-- Enhanced Loading State -->
+                    <div v-if="loading" class="absolute inset-0 bg-black/90 backdrop-blur-2xl flex flex-col items-center justify-center text-center p-10 z-50 animate-in fade-in duration-300">
+                        <div class="loading-ring mb-8"></div>
+                        <h3 class="text-2xl font-black italic text-emerald-500 mb-3 tracking-tighter uppercase">{{ loadingStep }}</h3>
+                        <p class="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] max-w-[200px] leading-loose">Analysing market price and condition...</p>
                     </div>
                 </div>
 
-                <!-- Result Card -->
-                <div v-if="result" class="flex-1 overflow-y-auto animate-in fade-in slide-in-from-bottom duration-500 pb-20">
-                    <div class="bg-zinc-900 rounded-[40px] p-6 border border-white/10 shadow-2xl min-h-full flex flex-col">
-                        <div class="mb-6">
-                            <span class="text-emerald-500 text-[10px] font-black uppercase tracking-[0.3em]">{{ result.category }}</span>
-                            <h2 class="text-3xl font-black italic leading-tight">{{ result.itemName }}</h2>
+                <!-- Result View -->
+                <div v-if="result" class="flex-1 overflow-y-auto pb-24 animate-in slide-in-from-bottom duration-500">
+                    <div class="bg-zinc-900 rounded-[45px] p-7 border border-white/10 shadow-2xl min-h-full flex flex-col border-t-emerald-500/30">
+                        <div class="mb-8">
+                            <span class="bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase tracking-[0.3em] px-3 py-1 rounded-full border border-emerald-500/20">{{ result.category }}</span>
+                            <h2 class="text-3xl font-black italic leading-tight mt-4 tracking-tighter">{{ result.itemName }}</h2>
                         </div>
 
-                        <!-- Real eBay Listings -->
-                        <div class="mb-6" v-if="result.ebayListings && result.ebayListings.length">
-                            <p class="text-[10px] font-bold text-zinc-500 uppercase mb-3 flex items-center gap-2">
-                                <i data-lucide="check-circle" class="w-3 h-3 text-emerald-500"></i> Sold Comparison (UK)
-                            </p>
-                            <div class="flex gap-3 overflow-x-auto hide-scrollbar -mx-2 px-2">
-                                <div v-for="(item, idx) in result.ebayListings" :key="idx" class="min-w-[140px] bg-black rounded-3xl overflow-hidden border border-white/5">
-                                    <img :src="item.img" class="w-full h-28 object-cover bg-zinc-800">
+                        <!-- eBay Match Slider -->
+                        <div class="mb-8" v-if="result.ebayListings && result.ebayListings.length">
+                            <div class="flex items-center justify-between mb-4">
+                                <p class="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                                    <i data-lucide="shield-check" class="w-3 h-3 text-emerald-500"></i> eBay Sold Proof
+                                </p>
+                            </div>
+                            <div class="flex gap-4 overflow-x-auto hide-scrollbar -mx-2 px-2">
+                                <div v-for="(item, idx) in result.ebayListings" :key="idx" class="min-w-[150px] bg-black rounded-[30px] overflow-hidden border border-white/5 p-1 shadow-lg">
+                                    <img :src="item.img" class="w-full h-32 object-cover rounded-[25px] bg-zinc-800">
                                     <div class="p-3 text-center">
-                                        <p class="text-white font-black text-lg italic">£{{ item.price }}</p>
+                                        <p class="text-emerald-400 font-black text-xl italic tracking-tighter">£{{ item.price }}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Profit Summary -->
-                        <div :class="profit > 10 ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-white'" class="p-8 rounded-[35px] mb-6 shadow-xl transition-all duration-500">
-                            <div class="flex justify-between items-end">
+                        <!-- Profit Highlight -->
+                        <div :class="profit > 12 ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-white'" class="p-8 rounded-[40px] mb-8 shadow-2xl transition-all relative overflow-hidden group">
+                            <div class="relative z-10 flex justify-between items-end">
                                 <div>
-                                    <p class="text-[10px] uppercase font-black opacity-60 mb-1 leading-none">Net Profit</p>
-                                    <p class="text-6xl font-black tracking-tighter italic leading-none">£{{ profit }}</p>
+                                    <p class="text-[9px] uppercase font-black opacity-60 mb-1">Est. Net Profit</p>
+                                    <p class="text-7xl font-black tracking-tighter italic leading-none">£{{ profit }}</p>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-[10px] uppercase font-black opacity-60 mb-1 leading-none">Avg Sold</p>
-                                    <p class="text-2xl font-black tracking-tighter leading-none">£{{ result.avgPrice }}</p>
+                                    <p class="text-[9px] uppercase font-black opacity-60 mb-1 leading-none">Avg Sold</p>
+                                    <p class="text-2xl font-black tracking-tighter">£{{ result.avgPrice }}</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="space-y-3 mt-auto">
-                            <a :href="result.ebayUrl" target="_blank" class="flex items-center justify-center gap-3 w-full py-5 bg-white text-black rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl">
-                                Verify On eBay <i data-lucide="external-link" class="w-4 h-4"></i>
+                        <!-- Bottom Controls -->
+                        <div class="mt-auto space-y-3">
+                            <a :href="result.ebayUrl" target="_blank" class="flex items-center justify-center gap-3 w-full py-5 bg-white text-black rounded-3xl font-black uppercase text-xs tracking-[0.2em] shadow-xl active:scale-95 transition-all">
+                                eBay History <i data-lucide="external-link" class="w-4 h-4"></i>
                             </a>
-                            <button @click="resetScanner" class="w-full py-5 bg-zinc-800 text-white rounded-3xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2">
-                                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Scan Next
+                            <button @click="resetScanner" class="w-full py-5 bg-zinc-800 text-white rounded-3xl font-black uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-2">
+                                <i data-lucide="camera" class="w-4 h-4"></i> New Scout
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Footer Controls -->
-                <div v-show="!result" class="mt-4">
-                    <div class="bg-zinc-950/50 backdrop-blur-md border border-white/5 rounded-3xl p-5 flex justify-between items-center mb-4">
-                        <span class="text-xs font-black text-zinc-500 uppercase tracking-widest leading-none">At Stall (£)</span>
-                        <input v-model="buyPrice" type="number" class="bg-transparent text-right text-3xl font-black outline-none w-20 text-emerald-500">
+                <!-- Bottom Input UI -->
+                <div v-show="!result" class="mt-4 flex flex-col gap-4">
+                    <div class="bg-zinc-900 border border-white/5 rounded-3xl p-5 flex justify-between items-center shadow-xl">
+                        <span class="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none">Stall Cost (£)</span>
+                        <input v-model="buyPrice" type="number" class="bg-transparent text-right text-3xl font-black outline-none w-24 text-white">
                     </div>
-                    <button @click="captureImage" :disabled="loading" class="w-full bg-emerald-500 text-black h-24 rounded-full flex items-center justify-center gap-3 active:scale-95 shadow-[0_20px_50px_rgba(16,185,129,0.3)] transition-all">
+                    <button @click="captureImage" :disabled="loading" class="w-full bg-emerald-500 text-black h-24 rounded-full flex items-center justify-center gap-4 active:scale-95 shadow-[0_25px_50px_rgba(16,185,129,0.2)] transition-all">
                         <i data-lucide="zap" class="w-8 h-8 fill-black"></i>
-                        <span class="text-2xl font-black uppercase tracking-tight italic">Scout Value</span>
+                        <span class="text-2xl font-black uppercase tracking-tight italic">Scan Item</span>
                     </button>
                 </div>
             </main>
         </template>
-
         <canvas ref="canvas" class="hidden"></canvas>
     </div>
 
@@ -136,34 +140,38 @@
                 const buyPrice = ref(5);
 
                 const saveKey = () => { if (tempKey.value) { apiKey.value = tempKey.value.trim(); localStorage.setItem('gemini_api_key', apiKey.value); location.reload(); } };
-                const resetKey = () => { if(confirm("Reset API?")){ localStorage.clear(); location.reload(); } };
+                const resetKey = () => { if(confirm("End Session?")){ localStorage.clear(); location.reload(); } };
 
                 const startCamera = async () => {
                     try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                        const stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { facingMode: 'environment', width: { ideal: 1280 } }, audio: false 
+                        });
                         video.value.srcObject = stream;
-                    } catch (err) { alert("Camera access denied."); }
+                    } catch (err) { alert("Enable Camera to continue."); }
                 };
 
                 const captureImage = async () => {
+                    if (loading.value) return;
                     loading.value = true;
                     loadingStep.value = "Capturing...";
                     
-                    const ctx = canvas.value.getContext('2d');
-                    // 【關鍵優化】：強制縮小圖片尺寸到 800px 以加快上傳速度
-                    const scale = 800 / video.value.videoWidth;
-                    canvas.value.width = 800;
+                    const ctx = canvas.value.getContext('2d', { alpha: false });
+                    // 強制縮小尺寸以維持穩定
+                    const width = 720;
+                    const scale = width / video.value.videoWidth;
+                    canvas.value.width = width;
                     canvas.value.height = video.value.videoHeight * scale;
                     ctx.drawImage(video.value, 0, 0, canvas.value.width, canvas.value.height);
                     
-                    // 【關鍵優化】：降低 JPEG 質素到 0.6，減少 90% 的檔案體積
-                    const base64 = canvas.value.toDataURL('image/jpeg', 0.6);
+                    // 降低 JPEG 品質至 0.5 進一步縮減體積
+                    const base64 = canvas.value.toDataURL('image/jpeg', 0.5);
                     
                     try {
-                        loadingStep.value = "Uploading to AI...";
-                        const aiData = await callGemini(base64);
+                        loadingStep.value = "AI Scouting...";
+                        const aiData = await callGeminiWithRetry(base64);
                         
-                        loadingStep.value = "Searching eBay...";
+                        loadingStep.value = "UK Market Live...";
                         const ebayData = await fetchEbay(aiData.searchQuery);
                         
                         result.value = {
@@ -173,42 +181,46 @@
                             ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(aiData.searchQuery)}&LH_Sold=1&LH_Complete=1`
                         };
                     } catch (err) {
-                        alert("Error: " + err.message);
+                        console.error(err);
+                        alert(err.message === "AbortError" ? "Network Timeout. Please try again." : err.message);
                     } finally {
                         loading.value = false;
                         nextTick(() => lucide.createIcons());
                     }
                 };
 
-                const callGemini = async (base64) => {
-                    const model = 'gemini-3-flash-preview'; 
-                    const prompt = `Identify this item for UK resale. Return RAW JSON only: {"itemName": "Brand Model", "category": "Tech|Toys|Fashion", "searchQuery": "ebay uk keywords", "est": 25}`;
+                const callGeminiWithRetry = async (base64) => {
+                    // 自動嘗試兩個模型
+                    const models = ['gemini-3-flash-preview', 'gemini-1.5-flash'];
+                    const prompt = `Identify this item. Return JSON only: {"itemName": "Brand Model", "category": "...", "searchQuery": "keywords", "est": 20}`;
                     
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超時
+                    for (let model of models) {
+                        const controller = new AbortController();
+                        const id = setTimeout(() => controller.abort(), 25000); // 放寬到 25 秒
 
-                    try {
-                        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.value}`, {
-                            method: 'POST',
-                            signal: controller.signal,
-                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64.split(',')[1] } }] }] })
-                        });
-                        const data = await resp.json();
-                        clearTimeout(timeoutId);
-                        if (data.error) throw new Error(data.error.message);
-                        return JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, ''));
-                    } catch (e) {
-                        if (e.name === 'AbortError') throw new Error("Connection timed out. Check your mobile data.");
-                        throw e;
+                        try {
+                            const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.value}`, {
+                                method: 'POST',
+                                signal: controller.signal,
+                                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64.split(',')[1] } }] }] })
+                            });
+                            clearTimeout(id);
+                            const data = await resp.json();
+                            if (data.error) continue;
+                            return JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, ''));
+                        } catch (e) {
+                            console.warn(`${model} failed, trying next...`);
+                            continue;
+                        }
                     }
+                    throw new Error("AI Timeout. Please check your signal or try again.");
                 };
 
                 const fetchEbay = async (query) => {
                     try {
-                        const target = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1`;
-                        const resp = await fetch(`https://corsproxy.io/?${encodeURIComponent(target)}`, { signal: AbortSignal.timeout(8000) });
+                        const url = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1`;
+                        const resp = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(10000) });
                         const html = await resp.text();
-                        
                         const items = [];
                         const pRegex = /£(\d+\.\d{2})/g;
                         const iRegex = /src="(https:\/\/i\.ebayimg\.com\/images\/g\/[^"]+)"/g;
@@ -219,17 +231,14 @@
                             if (!p || !i) break;
                             items.push({ price: parseFloat(p[1]), img: i[1] });
                         }
-                        
-                        if (!items.length) return null;
-                        const avg = (items.reduce((s, x) => s + x.price, 0) / items.length).toFixed(2);
-                        return { items, avg };
+                        return items.length ? { items, avg: (items.reduce((s, x) => s + x.price, 0) / items.length).toFixed(2) } : null;
                     } catch (e) { return null; }
                 };
 
                 const profit = computed(() => {
                     if (!result.value) return 0;
                     const p = parseFloat(result.value.avgPrice);
-                    return (p - (p * 0.132) - 5.30 - buyPrice.value).toFixed(2);
+                    return (p - (p * 0.132) - 5.50 - buyPrice.value).toFixed(2);
                 });
 
                 const resetScanner = () => { result.value = null; nextTick(() => lucide.createIcons()); };
