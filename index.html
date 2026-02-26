@@ -3,115 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BootFair Scout V2 | Real-time Comparison</title>
+    <title>BootFair Scout V3 | Pro Edition</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #000; color: #fff; }
+        body { font-family: 'Inter', sans-serif; background-color: #000; color: #fff; -webkit-tap-highlight-color: transparent; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .loading-bar { height: 2px; background: #10b981; animation: loading 2s infinite; }
+        @keyframes loading { 0% { width: 0; left: 0; } 50% { width: 100%; left: 0; } 100% { width: 0; left: 100%; } }
     </style>
 </head>
 <body>
-    <div id="app" class="min-h-screen flex flex-col max-w-md mx-auto relative overflow-hidden bg-black text-white">
+    <div id="app" class="min-h-screen flex flex-col max-w-md mx-auto bg-black overflow-hidden relative">
         
-        <!-- Header -->
-        <header class="p-4 flex justify-between items-center border-b border-white/10 z-20 bg-black/80 backdrop-blur-md sticky top-0">
+        <!-- Top Nav -->
+        <header class="p-4 flex justify-between items-center border-b border-white/10 bg-black/80 backdrop-blur-md z-50">
             <h1 class="text-xl font-black italic tracking-tighter">BOOTFAIR <span class="text-emerald-500">SCOUT</span></h1>
-            <button @click="resetKey" class="text-[10px] text-zinc-500 underline uppercase">Reset API</button>
+            <div @click="resetKey" class="px-2 py-1 bg-white/5 rounded text-[10px] text-zinc-500 font-bold uppercase">Reset API</div>
         </header>
 
-        <!-- API Setup -->
-        <div v-if="!apiKey" class="p-8 flex-1 flex flex-col justify-center">
-            <h2 class="text-2xl font-bold mb-4 italic">Welcome Scout.</h2>
-            <p class="text-zinc-400 mb-6 text-sm">Enter your Gemini API Key to start live market scanning.</p>
-            <input v-model="tempKey" type="password" placeholder="Paste Gemini Key here" 
-                class="bg-zinc-900 border border-white/10 p-4 rounded-2xl w-full mb-4 focus:border-emerald-500 outline-none text-white">
-            <button @click="saveKey" class="bg-emerald-500 text-black font-black py-4 rounded-2xl uppercase tracking-widest">Initialise</button>
+        <!-- Step 1: API Key Entry -->
+        <div v-if="!apiKey" class="p-8 flex-1 flex flex-col justify-center animate-in fade-in">
+            <h2 class="text-3xl font-black mb-2 italic">SCAN. PROFIT. REPEAT.</h2>
+            <p class="text-zinc-500 mb-8 text-sm leading-relaxed">Enter your Gemini API Key to unlock real-time UK market data.</p>
+            <input v-model="tempKey" type="password" placeholder="Paste Gemini API Key" 
+                class="bg-zinc-900 border border-white/10 p-5 rounded-3xl w-full mb-4 focus:border-emerald-500 outline-none text-xl">
+            <button @click="saveKey" class="bg-emerald-500 text-black font-black py-5 rounded-3xl uppercase tracking-widest shadow-lg active:scale-95 transition-transform">Get Started</button>
+            <p class="text-[10px] text-center mt-6 text-zinc-600 uppercase font-bold tracking-widest">Supports Gemini 1.5 Flash / 3 Preview</p>
         </div>
 
-        <main v-else class="flex-1 relative flex flex-col p-4">
-            <!-- Camera View -->
-            <div v-show="!result" class="relative flex-1 rounded-[40px] overflow-hidden border border-white/10 bg-zinc-950">
-                <video ref="video" autoplay playsinline class="w-full h-full object-cover"></video>
-                <div v-if="loading" class="absolute inset-0 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
-                    <div class="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-6"></div>
-                    <p class="text-emerald-400 font-black italic text-2xl tracking-tighter">SCOUTING EBAY UK...</p>
-                    <p class="text-zinc-500 text-xs mt-2 uppercase tracking-[0.2em] animate-pulse">{{ loadingStep }}</p>
+        <!-- Step 2: Scanner / Results -->
+        <main v-else class="flex-1 relative flex flex-col p-4 overflow-hidden">
+            
+            <!-- Camera / Loading Overlay -->
+            <div v-show="!result" class="relative flex-1 rounded-[40px] overflow-hidden border border-white/10 shadow-2xl bg-zinc-900">
+                <video ref="video" autoplay playsinline class="w-full h-full object-cover opacity-90"></video>
+                
+                <!-- Scanning UI -->
+                <div v-if="!loading" class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div class="w-64 h-64 border-2 border-emerald-500/20 rounded-3xl relative">
+                        <div class="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-500 rounded-tl-lg"></div>
+                        <div class="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-500 rounded-tr-lg"></div>
+                        <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-500 rounded-bl-lg"></div>
+                        <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-500 rounded-br-lg"></div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div v-if="loading" class="absolute inset-0 bg-black/80 backdrop-blur-xl flex flex-col items-center justify-center text-center p-8 z-50">
+                    <div class="w-20 h-20 mb-8 relative">
+                        <div class="absolute inset-0 border-4 border-emerald-500/20 rounded-full"></div>
+                        <div class="absolute inset-0 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                    <h3 class="text-2xl font-black italic text-emerald-500 mb-2">SCOUTING...</h3>
+                    <p class="text-zinc-400 text-xs font-bold uppercase tracking-[0.2em] h-4">{{ loadingStep }}</p>
+                    <button v-if="showSkip" @click="skipScrape" class="mt-8 text-[10px] text-zinc-500 underline uppercase font-black">Taking too long? Skip to AI estimate</button>
                 </div>
             </div>
 
             <!-- Result Pop-up -->
-            <div v-if="result" class="flex-1 animate-in fade-in zoom-in duration-300">
-                <div class="bg-zinc-900 rounded-[40px] p-6 border border-white/10 h-full flex flex-col shadow-2xl overflow-y-auto">
-                    
+            <div v-if="result" class="flex-1 overflow-y-auto animate-in fade-in slide-in-from-bottom duration-500 pb-20">
+                <div class="bg-zinc-900 rounded-[40px] p-6 border border-white/10 shadow-2xl min-h-full flex flex-col">
                     <div class="mb-6">
-                        <span class="text-emerald-500 text-[10px] font-black uppercase tracking-[0.3em]">{{ result.category }}</span>
-                        <h2 class="text-3xl font-black italic leading-none mt-1">{{ result.itemName }}</h2>
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-emerald-500 text-[10px] font-black uppercase tracking-[0.3em]">{{ result.category }}</span>
+                            <span class="text-zinc-600 text-[10px] font-bold">{{ result.modelUsed }}</span>
+                        </div>
+                        <h2 class="text-3xl font-black italic leading-tight">{{ result.itemName }}</h2>
                     </div>
 
-                    <!-- Market Comparison Gallery -->
-                    <div class="mb-8">
+                    <!-- eBay Listing Gallery -->
+                    <div class="mb-8" v-if="result.ebayListings && result.ebayListings.length">
                         <p class="text-[10px] font-bold text-zinc-500 uppercase mb-3 flex items-center gap-2">
-                            <i data-lucide="eye" class="w-3 h-3"></i> Real Sold Matches on eBay UK
+                            <i data-lucide="shopping-bag" class="w-3 h-3"></i> Recent eBay UK Sold Matches
                         </p>
                         <div class="flex gap-4 overflow-x-auto hide-scrollbar -mx-2 px-2">
                             <div v-for="(item, idx) in result.ebayListings" :key="idx" 
-                                 class="min-w-[160px] bg-black rounded-3xl overflow-hidden border border-white/5 shadow-lg">
-                                <img :src="item.img" class="w-full h-32 object-cover bg-zinc-800" onerror="this.src='https://placehold.co/400x400/000/FFF?text=No+Photo'">
-                                <div class="p-3 text-[10px]">
-                                    <p class="text-zinc-400 line-clamp-2 h-7 leading-tight mb-2">{{ item.title }}</p>
-                                    <p class="text-white font-black text-sm">£{{ item.price }}</p>
+                                 class="min-w-[170px] bg-black rounded-3xl overflow-hidden border border-white/5 shadow-xl flex flex-col">
+                                <div class="h-32 bg-zinc-800 overflow-hidden">
+                                    <img :src="item.img" class="w-full h-full object-cover" @error="item.img = 'https://placehold.co/400x400/222/555?text=No+Photo'">
+                                </div>
+                                <div class="p-3">
+                                    <p class="text-white font-black text-base italic">£{{ item.price }}</p>
+                                    <p class="text-[9px] text-zinc-500 line-clamp-1 mt-1 font-bold uppercase tracking-tighter">{{ item.title }}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Profit Summary -->
-                    <div :class="netProfit > 15 ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-white'" 
-                         class="p-6 rounded-[32px] mb-6 shadow-[0_20px_40px_rgba(0,0,0,0.3)] transition-all">
-                        <div class="flex justify-between items-start">
+                    <div :class="profit > 15 ? 'bg-emerald-500 text-black shadow-emerald-500/20' : 'bg-zinc-800 text-white shadow-black/50'" 
+                         class="p-7 rounded-[35px] mb-6 shadow-2xl transition-all duration-500 relative overflow-hidden">
+                        <div class="relative z-10 flex justify-between items-end">
                             <div>
-                                <p class="text-[10px] uppercase font-black opacity-60">Avg Market Value</p>
-                                <p class="text-4xl font-black tracking-tighter">£{{ avgPrice }}</p>
+                                <p class="text-[10px] uppercase font-black opacity-60 mb-1">Est. Profit</p>
+                                <p class="text-6xl font-black tracking-tighter italic">£{{ profit }}</p>
                             </div>
                             <div class="text-right">
-                                <p class="text-[10px] uppercase font-black opacity-60">Potential Profit</p>
-                                <p class="text-3xl font-black italic">£{{ netProfit }}</p>
+                                <p class="text-[10px] uppercase font-black opacity-60 mb-1">Avg. Value</p>
+                                <p class="text-2xl font-black tracking-tighter">£{{ result.avgPrice }}</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Bottom Actions -->
-                    <div class="mt-auto space-y-3">
+                    <!-- Market Link -->
+                    <div class="space-y-3 mt-auto">
                         <a :href="result.ebayUrl" target="_blank" 
-                           class="flex items-center justify-center gap-2 w-full py-4 bg-white text-black rounded-2xl font-black uppercase text-sm">
-                            View All Sold History <i data-lucide="external-link" class="w-4 h-4"></i>
+                           class="flex items-center justify-center gap-3 w-full py-5 bg-white text-black rounded-[20px] font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">
+                            Check Full History <i data-lucide="external-link" class="w-4 h-4"></i>
                         </a>
-                        <button @click="resetScanner" class="w-full py-4 bg-zinc-800 text-white rounded-2xl font-black uppercase text-sm flex items-center justify-center gap-2">
-                            <i data-lucide="refresh-ccw" class="w-4 h-4"></i> Scan Next Item
+                        <button @click="resetScanner" class="w-full py-5 bg-zinc-800 text-white rounded-[20px] font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Scan New Item
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Price Input -->
-            <div v-show="!loading" class="mt-4 bg-zinc-950 border border-white/5 rounded-[24px] p-4 flex justify-between items-center shadow-lg">
-                <span class="text-xs font-black text-zinc-500 uppercase tracking-tighter">Asking Price</span>
-                <div class="flex items-center gap-1">
-                    <span class="text-emerald-500 font-black">£</span>
+            <!-- Price Input (Fixed at Bottom-ish) -->
+            <div v-show="!loading && !result" class="mt-4 bg-zinc-950/80 backdrop-blur-md border border-white/5 rounded-3xl p-5 flex justify-between items-center shadow-2xl">
+                <span class="text-xs font-black text-zinc-500 uppercase tracking-widest">Asking Price</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-500 font-black text-xl italic">£</span>
                     <input v-model="buyPrice" type="number" 
-                        class="bg-transparent text-right text-2xl font-black outline-none w-20 text-white">
+                        class="bg-transparent text-right text-3xl font-black outline-none w-24 text-white placeholder-zinc-800">
                 </div>
             </div>
 
-            <!-- Main Button -->
-            <div v-if="!result" class="mt-4 mb-6">
+            <!-- Scan Button -->
+            <div v-if="!result" class="mt-4 mb-4">
                 <button @click="captureImage" :disabled="loading"
-                    class="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-800 text-black h-20 rounded-full flex items-center justify-center gap-3 active:scale-95 shadow-[0_0_50px_rgba(16,185,129,0.2)] transition-all">
-                    <i data-lucide="scan" class="w-8 h-8"></i>
-                    <span class="text-xl font-black uppercase tracking-tight italic">Scan for Gold</span>
+                    class="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-800 text-black h-24 rounded-full flex items-center justify-center gap-3 active:scale-95 shadow-[0_20px_60px_rgba(16,185,129,0.3)] transition-all">
+                    <i data-lucide="zap" class="w-8 h-8 fill-black"></i>
+                    <span class="text-2xl font-black uppercase tracking-tight italic">Scout Market</span>
                 </button>
             </div>
         </main>
@@ -130,137 +155,151 @@
                 const canvas = ref(null);
                 const loading = ref(false);
                 const loadingStep = ref('');
+                const showSkip = ref(false);
                 const result = ref(null);
                 const buyPrice = ref(5);
+                let currentAiData = null;
 
-                const saveKey = () => {
-                    if (tempKey.value) {
-                        apiKey.value = tempKey.value.trim();
-                        localStorage.setItem('gemini_api_key', apiKey.value);
-                        startCamera();
-                    }
-                };
-                
-                const resetKey = () => {
-                    localStorage.removeItem('gemini_api_key');
-                    location.reload();
-                };
+                const saveKey = () => { if (tempKey.value) { apiKey.value = tempKey.value.trim(); localStorage.setItem('gemini_api_key', apiKey.value); startCamera(); } };
+                const resetKey = () => { if(confirm("Reset API Key?")){ localStorage.removeItem('gemini_api_key'); location.reload(); } };
 
                 const startCamera = async () => {
                     try {
                         const stream = await navigator.mediaDevices.getUserMedia({ 
-                            video: { facingMode: 'environment', width: { ideal: 1280 } }, 
+                            video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }, 
                             audio: false 
                         });
                         video.value.srcObject = stream;
-                    } catch (err) {
-                        alert("Please allow camera access.");
-                    }
+                    } catch (err) { alert("Camera access required for scanning."); }
                 };
 
                 const captureImage = async () => {
                     loading.value = true;
+                    showSkip.value = false;
                     loadingStep.value = "AI Identifying Object...";
+                    
                     const context = canvas.value.getContext('2d');
                     canvas.value.width = video.value.videoWidth;
                     canvas.value.height = video.value.videoHeight;
                     context.drawImage(video.value, 0, 0);
                     const base64 = canvas.value.toDataURL('image/jpeg', 0.8);
                     
-                    await runWorkflow(base64);
-                };
-
-                const runWorkflow = async (base64) => {
                     try {
-                        // 1. AI Identification (Using Gemini 3 Flash Preview as you have it)
+                        // Phase 1: AI Analysis
                         const aiData = await callGemini(base64);
+                        currentAiData = aiData;
                         
-                        // 2. Real eBay Scrape (via AllOrigins Proxy)
-                        loadingStep.value = "Fetching Live eBay Results...";
-                        const realEbayData = await fetchRealEbayData(aiData.searchQuery);
+                        // Phase 2: eBay Scrape with Timeout
+                        loadingStep.value = "Connecting to eBay UK...";
+                        setTimeout(() => { if(loading.value) showSkip.value = true; }, 4000);
                         
-                        result.value = {
-                            ...aiData,
-                            ebayListings: realEbayData.listings,
-                            avgPrice: realEbayData.avgPrice,
-                            ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(aiData.searchQuery)}&LH_Sold=1&LH_Complete=1`
-                        };
-                        
-                        nextTick(() => lucide.createIcons());
+                        const ebayData = await fetchEbayWithFallback(aiData.searchQuery);
+                        displayResult(aiData, ebayData);
                     } catch (err) {
-                        alert(err.message);
-                    } finally {
+                        alert("Error: " + err.message);
                         loading.value = false;
                     }
                 };
 
                 const callGemini = async (base64) => {
-                    const prompt = `Identify this item. Return JSON: {"itemName": "Brand Model", "category": "...", "searchQuery": "eBay UK keywords"}`;
-                    // Trying the models in order of availability
-                    const model = 'gemini-3-flash-preview'; 
-                    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.value}`, {
-                        method: 'POST',
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64.split(',')[1] } }] }] })
-                    });
-                    const data = await resp.json();
-                    if (data.error) throw new Error("Gemini Error: " + data.error.message);
-                    return JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, ''));
+                    // 根據你截圖看到的優先順序
+                    const models = ['gemini-3-flash-preview', 'gemini-1.5-flash'];
+                    const prompt = `Identify this car boot sale item. Return RAW JSON only: {"itemName": "Brand Model", "category": "Toys|Tech|Fashion|Media", "searchQuery": "ebay uk search keywords", "estPrice": 20}`;
+                    
+                    for (let model of models) {
+                        try {
+                            const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.value}`, {
+                                method: 'POST',
+                                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64.split(',')[1] } }] }] })
+                            });
+                            const data = await resp.json();
+                            if (data.error) continue;
+                            const aiJson = JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, ''));
+                            return { ...aiJson, modelUsed: model };
+                        } catch (e) { continue; }
+                    }
+                    throw new Error("AI failed to respond. Check your API key.");
                 };
 
-                const fetchRealEbayData = async (query) => {
-                    // Using AllOrigins CORS Proxy to fetch eBay UK Sold items
+                const fetchEbayWithFallback = async (query) => {
+                    // Try CORSProxy.io first (Faster)
                     const target = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1`;
-                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`;
                     
-                    const resp = await fetch(proxyUrl);
-                    const data = await resp.json();
-                    const html = data.contents;
+                    const proxies = [
+                        `https://corsproxy.io/?${encodeURIComponent(target)}`,
+                        `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`
+                    ];
 
-                    // Parse HTML using Regex (Hacky but effective for single-file)
-                    const listings = [];
-                    const imgRegex = /<div class="s-item__image-wrapper[^>]*><img[^>]*src="([^"]+)"/g;
-                    const priceRegex = /<span class="s-item__price"><span class="BOLD">£([^<]+)<\/span>/g;
-                    const titleRegex = /<div class="s-item__title">.*?<span>(.*?)<\/span>/g;
-
-                    let mImg, mPrice, mTitle;
-                    let count = 0;
-                    
-                    while (count < 3) {
-                        mImg = imgRegex.exec(html);
-                        mPrice = priceRegex.exec(html);
-                        mTitle = titleRegex.exec(html);
-                        
-                        if (!mPrice || !mImg) break;
-                        
-                        listings.push({
-                            img: mImg[1],
-                            price: parseFloat(mPrice[1].replace(/,/g, '')),
-                            title: mTitle ? mTitle[1] : "eBay Listing"
-                        });
-                        count++;
+                    for (let url of proxies) {
+                        try {
+                            loadingStep.value = url.includes('corsproxy') ? "Fetching Live Data..." : "Using Backup Route...";
+                            const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+                            let html = "";
+                            if (url.includes('allorigins')) {
+                                const json = await resp.json();
+                                html = json.contents;
+                            } else {
+                                html = await resp.text();
+                            }
+                            return parseEbayHtml(html);
+                        } catch (e) { console.warn("Proxy failed:", url); continue; }
                     }
+                    return null; // All failed
+                };
 
-                    if (listings.length === 0) throw new Error("No recent sold listings found on eBay UK.");
+                const parseEbayHtml = (html) => {
+                    const listings = [];
+                    // 更加寬鬆的 Regex 匹配價格同相片
+                    const priceRegex = /£(\d+\.\d{2})/g;
+                    const imgRegex = /src="(https:\/\/i\.ebayimg\.com\/images\/g\/[^"]+)"/g;
+                    const titleRegex = /class="s-item__title">.*?<span>(.*?)<\/span>/g;
 
-                    const avg = listings.reduce((sum, item) => sum + item.price, 0) / listings.length;
+                    let p, i, t;
+                    while (listings.length < 5) {
+                        p = priceRegex.exec(html);
+                        i = imgRegex.exec(html);
+                        t = titleRegex.exec(html);
+                        if (!p || !i) break;
+                        listings.push({
+                            price: parseFloat(p[1]),
+                            img: i[1],
+                            title: t ? t[1].replace(/<[^>]*>/g, '') : "Item"
+                        });
+                    }
+                    
+                    if (listings.length === 0) return null;
+                    const avg = listings.reduce((s, x) => s + x.price, 0) / listings.length;
                     return { listings, avgPrice: avg.toFixed(2) };
                 };
 
-                const avgPrice = computed(() => result.value ? result.value.avgPrice : 0);
-                
-                const netProfit = computed(() => {
+                const skipScrape = () => {
+                    displayResult(currentAiData, null);
+                };
+
+                const displayResult = (ai, ebay) => {
+                    result.value = {
+                        ...ai,
+                        avgPrice: ebay ? ebay.avgPrice : ai.estPrice.toFixed(2),
+                        ebayListings: ebay ? ebay.listings : [],
+                        ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(ai.searchQuery)}&LH_Sold=1&LH_Complete=1`
+                    };
+                    loading.value = false;
+                    nextTick(() => { lucide.createIcons(); });
+                };
+
+                const profit = computed(() => {
                     if (!result.value) return 0;
-                    const p = parseFloat(avgPrice.value);
-                    const fees = p * 0.132;
-                    const shipping = 5.0;
-                    return (p - fees - shipping - buyPrice.value).toFixed(2);
+                    const p = parseFloat(result.value.avgPrice);
+                    const fees = p * 0.132 + 0.30;
+                    const net = p - fees - 5.0 - buyPrice.value;
+                    return net.toFixed(2);
                 });
 
                 const resetScanner = () => { result.value = null; nextTick(() => lucide.createIcons()); };
 
                 onMounted(() => { if (apiKey.value) startCamera(); lucide.createIcons(); });
 
-                return { apiKey, tempKey, saveKey, resetKey, video, canvas, captureImage, loading, loadingStep, result, buyPrice, netProfit, avgPrice, resetScanner };
+                return { apiKey, tempKey, saveKey, resetKey, video, canvas, captureImage, loading, loadingStep, showSkip, result, buyPrice, profit, resetScanner, skipScrape };
             }
         }).mount('#app');
     </script>
