@@ -3,132 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BootFair Scout | AI Resell Scanner</title>
+    <title>BootFair Scout V2 | Real-time Comparison</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #000; color: #fff; }
-        .scanner-line {
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #10b981, transparent);
-            animation: scan 2s linear infinite;
-        }
-        @keyframes scan {
-            0% { top: 0%; }
-            100% { top: 100%; }
-        }
-        .fintech-gradient {
-            background: linear-gradient(180deg, rgba(16,185,129,0.1) 0%, rgba(0,0,0,0) 100%);
-        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
-    <div id="app" class="min-h-screen flex flex-col max-w-md mx-auto relative overflow-hidden">
+    <div id="app" class="min-h-screen flex flex-col max-w-md mx-auto relative overflow-hidden bg-black text-white">
         
         <!-- Header -->
-        <header class="p-4 flex justify-between items-center border-b border-white/10 z-20 bg-black/50 backdrop-blur-md">
-            <h1 class="text-xl font-black tracking-tighter italic text-white">
-                BOOTFAIR <span class="text-emerald-500">SCOUT</span>
-            </h1>
-            <div class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-2">
-                <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span class="text-[10px] font-bold text-emerald-500 tracking-widest uppercase">UK Market</span>
-            </div>
+        <header class="p-4 flex justify-between items-center border-b border-white/10 z-20 bg-black/80 backdrop-blur-md sticky top-0">
+            <h1 class="text-xl font-black italic tracking-tighter">BOOTFAIR <span class="text-emerald-500">SCOUT</span></h1>
+            <button @click="resetKey" class="text-[10px] text-zinc-500 underline uppercase">Reset API</button>
         </header>
 
-        <!-- API Key Input (Initial Setup Only) -->
-        <div v-if="!apiKey" class="p-8 flex-1 flex flex-col justify-center z-30">
-            <h2 class="text-2xl font-bold mb-4">Setup Required</h2>
-            <p class="text-zinc-400 mb-6 text-sm">Please enter your Google Gemini API Key to start scouting.</p>
-            <input v-model="tempKey" type="password" placeholder="Paste Gemini API Key" 
-                class="bg-zinc-900 border border-white/10 p-4 rounded-2xl w-full mb-4 focus:border-emerald-500 outline-none">
-            <button @click="saveKey" class="bg-emerald-500 text-black font-bold py-4 rounded-2xl">Start Scanning</button>
+        <!-- API Setup -->
+        <div v-if="!apiKey" class="p-8 flex-1 flex flex-col justify-center">
+            <h2 class="text-2xl font-bold mb-4 italic">Welcome Scout.</h2>
+            <p class="text-zinc-400 mb-6 text-sm">Enter your Gemini API Key to start live market scanning.</p>
+            <input v-model="tempKey" type="password" placeholder="Paste Gemini Key here" 
+                class="bg-zinc-900 border border-white/10 p-4 rounded-2xl w-full mb-4 focus:border-emerald-500 outline-none text-white">
+            <button @click="saveKey" class="bg-emerald-500 text-black font-black py-4 rounded-2xl uppercase tracking-widest">Initialise</button>
         </div>
 
         <main v-else class="flex-1 relative flex flex-col p-4">
-            
-            <!-- Camera Viewport -->
-            <div v-show="!result" class="relative flex-1 rounded-[32px] overflow-hidden border border-white/10 bg-zinc-900 shadow-2xl">
-                <video ref="video" autoplay playsinline class="w-full h-full object-cover opacity-80"></video>
-                
-                <!-- Overlay -->
-                <div class="absolute inset-0 pointer-events-none border-[20px] border-black/20">
-                    <div class="absolute inset-10 border-2 border-emerald-500/30 rounded-2xl">
-                        <div class="scanner-line absolute w-full"></div>
-                    </div>
-                </div>
-
-                <!-- Status Overlay -->
-                <div v-if="loading" class="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6">
-                    <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <p class="text-emerald-500 font-black italic text-xl tracking-tight">ANALYSING MARKET...</p>
-                    <p class="text-zinc-400 text-xs mt-2 uppercase tracking-widest">Checking eBay UK Sold History</p>
+            <!-- Camera View -->
+            <div v-show="!result" class="relative flex-1 rounded-[40px] overflow-hidden border border-white/10 bg-zinc-950">
+                <video ref="video" autoplay playsinline class="w-full h-full object-cover"></video>
+                <div v-if="loading" class="absolute inset-0 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+                    <div class="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+                    <p class="text-emerald-400 font-black italic text-2xl tracking-tighter">SCOUTING EBAY UK...</p>
+                    <p class="text-zinc-500 text-xs mt-2 uppercase tracking-[0.2em] animate-pulse">{{ loadingStep }}</p>
                 </div>
             </div>
 
-            <!-- Result View -->
-            <div v-if="result" class="flex-1 animate-in fade-in slide-in-from-bottom duration-500">
-                <div class="bg-zinc-900 rounded-[32px] p-6 border border-white/10 h-full flex flex-col fintech-gradient">
-                    <span class="text-emerald-500 text-[10px] font-black uppercase tracking-[0.2em] mb-2">{{ result.category }}</span>
-                    <h2 class="text-3xl font-bold leading-none mb-6 italic">{{ result.itemName }}</h2>
-
-                    <div class="grid grid-cols-2 gap-3 mb-6">
-                        <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
-                            <p class="text-[10px] text-zinc-500 uppercase font-bold mb-1">Avg. Sold Price</p>
-                            <p class="text-2xl font-black italic">£{{ result.avgPrice }}</p>
-                        </div>
-                        <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
-                            <p class="text-[10px] text-zinc-500 uppercase font-bold mb-1">Confidence</p>
-                            <p class="text-2xl font-black text-emerald-400">{{ Math.round(result.confidence * 100) }}%</p>
-                        </div>
+            <!-- Result Pop-up -->
+            <div v-if="result" class="flex-1 animate-in fade-in zoom-in duration-300">
+                <div class="bg-zinc-900 rounded-[40px] p-6 border border-white/10 h-full flex flex-col shadow-2xl overflow-y-auto">
+                    
+                    <div class="mb-6">
+                        <span class="text-emerald-500 text-[10px] font-black uppercase tracking-[0.3em]">{{ result.category }}</span>
+                        <h2 class="text-3xl font-black italic leading-none mt-1">{{ result.itemName }}</h2>
                     </div>
 
-                    <!-- Profit Card -->
-                    <div :class="profit > 10 ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-white'" 
-                         class="p-6 rounded-3xl mb-6 transition-colors duration-500 shadow-xl">
-                        <p class="text-[10px] uppercase font-black opacity-60 mb-1">Potential Net Profit</p>
-                        <div class="flex justify-between items-center">
-                            <p class="text-5xl font-black tracking-tighter">£{{ profit }}</p>
-                            <i v-if="profit > 10" data-lucide="trending-up" class="w-10 h-10"></i>
-                        </div>
-                        <p class="text-[10px] mt-4 font-bold opacity-60 uppercase tracking-tight">
-                            After 13.2% Fees + £5 Shipping
+                    <!-- Market Comparison Gallery -->
+                    <div class="mb-8">
+                        <p class="text-[10px] font-bold text-zinc-500 uppercase mb-3 flex items-center gap-2">
+                            <i data-lucide="eye" class="w-3 h-3"></i> Real Sold Matches on eBay UK
                         </p>
+                        <div class="flex gap-4 overflow-x-auto hide-scrollbar -mx-2 px-2">
+                            <div v-for="(item, idx) in result.ebayListings" :key="idx" 
+                                 class="min-w-[160px] bg-black rounded-3xl overflow-hidden border border-white/5 shadow-lg">
+                                <img :src="item.img" class="w-full h-32 object-cover bg-zinc-800" onerror="this.src='https://placehold.co/400x400/000/FFF?text=No+Photo'">
+                                <div class="p-3 text-[10px]">
+                                    <p class="text-zinc-400 line-clamp-2 h-7 leading-tight mb-2">{{ item.title }}</p>
+                                    <p class="text-white font-black text-sm">£{{ item.price }}</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Action Buttons -->
+                    <!-- Profit Summary -->
+                    <div :class="netProfit > 15 ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-white'" 
+                         class="p-6 rounded-[32px] mb-6 shadow-[0_20px_40px_rgba(0,0,0,0.3)] transition-all">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[10px] uppercase font-black opacity-60">Avg Market Value</p>
+                                <p class="text-4xl font-black tracking-tighter">£{{ avgPrice }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[10px] uppercase font-black opacity-60">Potential Profit</p>
+                                <p class="text-3xl font-black italic">£{{ netProfit }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Actions -->
                     <div class="mt-auto space-y-3">
                         <a :href="result.ebayUrl" target="_blank" 
-                           class="flex items-center justify-center gap-2 w-full py-4 bg-white text-black rounded-2xl font-bold transition active:scale-95">
-                            Verify Sold Listings <i data-lucide="external-link" class="w-4 h-4"></i>
+                           class="flex items-center justify-center gap-2 w-full py-4 bg-white text-black rounded-2xl font-black uppercase text-sm">
+                            View All Sold History <i data-lucide="external-link" class="w-4 h-4"></i>
                         </a>
-                        <button @click="resetScanner" class="w-full py-4 bg-zinc-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2">
-                            <i data-lucide="refresh-ccw" class="w-4 h-4"></i> New Scan
+                        <button @click="resetScanner" class="w-full py-4 bg-zinc-800 text-white rounded-2xl font-black uppercase text-sm flex items-center justify-center gap-2">
+                            <i data-lucide="refresh-ccw" class="w-4 h-4"></i> Scan Next Item
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Price Input (Fixed Bottom) -->
-            <div v-show="!loading" class="mt-4 bg-zinc-900 border border-white/10 rounded-2xl p-4">
-                <div class="flex justify-between items-center">
-                    <label class="text-xs font-bold text-zinc-500 uppercase">Stall Price (£)</label>
+            <!-- Price Input -->
+            <div v-show="!loading" class="mt-4 bg-zinc-950 border border-white/5 rounded-[24px] p-4 flex justify-between items-center shadow-lg">
+                <span class="text-xs font-black text-zinc-500 uppercase tracking-tighter">Asking Price</span>
+                <div class="flex items-center gap-1">
+                    <span class="text-emerald-500 font-black">£</span>
                     <input v-model="buyPrice" type="number" 
-                        class="bg-transparent text-right text-xl font-black outline-none w-24 text-emerald-500">
+                        class="bg-transparent text-right text-2xl font-black outline-none w-20 text-white">
                 </div>
             </div>
 
-            <!-- Scan Button -->
-            <div v-if="!result" class="mt-6 mb-8">
+            <!-- Main Button -->
+            <div v-if="!result" class="mt-4 mb-6">
                 <button @click="captureImage" :disabled="loading"
-                    class="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-800 text-black h-20 rounded-full flex items-center justify-center gap-3 transition-all active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-                    <i data-lucide="camera" class="w-8 h-8"></i>
-                    <span class="text-xl font-black uppercase tracking-tight">Scout Item</span>
+                    class="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-800 text-black h-20 rounded-full flex items-center justify-center gap-3 active:scale-95 shadow-[0_0_50px_rgba(16,185,129,0.2)] transition-all">
+                    <i data-lucide="scan" class="w-8 h-8"></i>
+                    <span class="text-xl font-black uppercase tracking-tight italic">Scan for Gold</span>
                 </button>
             </div>
-
         </main>
 
         <canvas ref="canvas" class="hidden"></canvas>
@@ -144,119 +129,138 @@
                 const video = ref(null);
                 const canvas = ref(null);
                 const loading = ref(false);
+                const loadingStep = ref('');
                 const result = ref(null);
                 const buyPrice = ref(5);
 
                 const saveKey = () => {
                     if (tempKey.value) {
-                        apiKey.value = tempKey.value;
-                        localStorage.setItem('gemini_api_key', tempKey.value);
+                        apiKey.value = tempKey.value.trim();
+                        localStorage.setItem('gemini_api_key', apiKey.value);
                         startCamera();
                     }
+                };
+                
+                const resetKey = () => {
+                    localStorage.removeItem('gemini_api_key');
+                    location.reload();
                 };
 
                 const startCamera = async () => {
                     try {
                         const stream = await navigator.mediaDevices.getUserMedia({ 
-                            video: { facingMode: 'environment' }, 
+                            video: { facingMode: 'environment', width: { ideal: 1280 } }, 
                             audio: false 
                         });
                         video.value.srcObject = stream;
                     } catch (err) {
-                        alert("Camera error: " + err.message);
+                        alert("Please allow camera access.");
                     }
                 };
 
                 const captureImage = async () => {
-                    loading.ref = true;
+                    loading.value = true;
+                    loadingStep.value = "AI Identifying Object...";
                     const context = canvas.value.getContext('2d');
                     canvas.value.width = video.value.videoWidth;
                     canvas.value.height = video.value.videoHeight;
                     context.drawImage(video.value, 0, 0);
+                    const base64 = canvas.value.toDataURL('image/jpeg', 0.8);
                     
-                    const base64Image = canvas.value.toDataURL('image/jpeg', 0.8);
-                    await analyzeItem(base64Image);
+                    await runWorkflow(base64);
                 };
-                
-                const analyzeItem = async (base64) => {
-                    loading.value = true;
-                    
-                    // 根據你截圖見到的最新模型名稱
-                    const MODEL_NAME = 'gemini-3-flash-preview'; 
-                    
-                    const prompt = `Identify the item in this image (Brand, Model, Category). 
-                    Return ONLY a raw JSON object with no markdown formatting: 
-                    {"itemName": "String", "category": "Toys|Tech|Media|Fashion", "searchQuery": "eBay UK search string", "confidence": 0.9}`;
-                
+
+                const runWorkflow = async (base64) => {
                     try {
-                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey.value}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{ 
-                                    parts: [
-                                        { text: prompt }, 
-                                        { inline_data: { mime_type: "image/jpeg", data: base64.split(',')[1] } }
-                                    ] 
-                                }]
-                            })
-                        });
+                        // 1. AI Identification (Using Gemini 3 Flash Preview as you have it)
+                        const aiData = await callGemini(base64);
                         
-                        const data = await response.json();
-                
-                        if (data.error) {
-                            // 如果 Gemini 3 Preview 唔得，試番 1.5 Flash (後備方案)
-                            if (data.error.message.includes('not found')) {
-                                return await tryBackupModel(base64);
-                            }
-                            throw new Error(data.error.message);
-                        }
-                
-                        const text = data.candidates[0].content.parts[0].text;
-                        const cleanJson = text.replace(/```json|```/g, '').trim();
-                        const aiJson = JSON.parse(cleanJson);
-                        
-                        const mockPrice = Math.floor(Math.random() * (80 - 15) + 15);
+                        // 2. Real eBay Scrape (via AllOrigins Proxy)
+                        loadingStep.value = "Fetching Live eBay Results...";
+                        const realEbayData = await fetchRealEbayData(aiData.searchQuery);
                         
                         result.value = {
-                            ...aiJson,
-                            avgPrice: mockPrice,
-                            ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(aiJson.searchQuery)}&LH_Sold=1&LH_Complete=1`
+                            ...aiData,
+                            ebayListings: realEbayData.listings,
+                            avgPrice: realEbayData.avgPrice,
+                            ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(aiData.searchQuery)}&LH_Sold=1&LH_Complete=1`
                         };
                         
                         nextTick(() => lucide.createIcons());
                     } catch (err) {
-                        alert(`Error: ${err.message}`);
+                        alert(err.message);
                     } finally {
                         loading.value = false;
                     }
                 };
-                
-                // 後備方案函數
-                async function tryBackupModel(base64) {
-                    // 如果連 Gemini 3 都唔認，就用最穩定的 1.5 Flash
-                    // 此處代碼邏輯同上，只需改 model 名為 gemini-1.5-flash
-                }
 
-                const profit = computed(() => {
-                    if (!result.value) return 0;
-                    const fees = result.value.avgPrice * 0.132;
-                    const shipping = 5.00;
-                    const net = result.value.avgPrice - fees - shipping - buyPrice.value;
-                    return net.toFixed(2);
-                });
-
-                const resetScanner = () => {
-                    result.value = null;
-                    nextTick(() => lucide.createIcons());
+                const callGemini = async (base64) => {
+                    const prompt = `Identify this item. Return JSON: {"itemName": "Brand Model", "category": "...", "searchQuery": "eBay UK keywords"}`;
+                    // Trying the models in order of availability
+                    const model = 'gemini-3-flash-preview'; 
+                    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.value}`, {
+                        method: 'POST',
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64.split(',')[1] } }] }] })
+                    });
+                    const data = await resp.json();
+                    if (data.error) throw new Error("Gemini Error: " + data.error.message);
+                    return JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, ''));
                 };
 
-                onMounted(() => {
-                    if (apiKey.value) startCamera();
-                    lucide.createIcons();
+                const fetchRealEbayData = async (query) => {
+                    // Using AllOrigins CORS Proxy to fetch eBay UK Sold items
+                    const target = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1`;
+                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`;
+                    
+                    const resp = await fetch(proxyUrl);
+                    const data = await resp.json();
+                    const html = data.contents;
+
+                    // Parse HTML using Regex (Hacky but effective for single-file)
+                    const listings = [];
+                    const imgRegex = /<div class="s-item__image-wrapper[^>]*><img[^>]*src="([^"]+)"/g;
+                    const priceRegex = /<span class="s-item__price"><span class="BOLD">£([^<]+)<\/span>/g;
+                    const titleRegex = /<div class="s-item__title">.*?<span>(.*?)<\/span>/g;
+
+                    let mImg, mPrice, mTitle;
+                    let count = 0;
+                    
+                    while (count < 3) {
+                        mImg = imgRegex.exec(html);
+                        mPrice = priceRegex.exec(html);
+                        mTitle = titleRegex.exec(html);
+                        
+                        if (!mPrice || !mImg) break;
+                        
+                        listings.push({
+                            img: mImg[1],
+                            price: parseFloat(mPrice[1].replace(/,/g, '')),
+                            title: mTitle ? mTitle[1] : "eBay Listing"
+                        });
+                        count++;
+                    }
+
+                    if (listings.length === 0) throw new Error("No recent sold listings found on eBay UK.");
+
+                    const avg = listings.reduce((sum, item) => sum + item.price, 0) / listings.length;
+                    return { listings, avgPrice: avg.toFixed(2) };
+                };
+
+                const avgPrice = computed(() => result.value ? result.value.avgPrice : 0);
+                
+                const netProfit = computed(() => {
+                    if (!result.value) return 0;
+                    const p = parseFloat(avgPrice.value);
+                    const fees = p * 0.132;
+                    const shipping = 5.0;
+                    return (p - fees - shipping - buyPrice.value).toFixed(2);
                 });
 
-                return { apiKey, tempKey, saveKey, video, canvas, captureImage, loading, result, buyPrice, profit, resetScanner };
+                const resetScanner = () => { result.value = null; nextTick(() => lucide.createIcons()); };
+
+                onMounted(() => { if (apiKey.value) startCamera(); lucide.createIcons(); });
+
+                return { apiKey, tempKey, saveKey, resetKey, video, canvas, captureImage, loading, loadingStep, result, buyPrice, netProfit, avgPrice, resetScanner };
             }
         }).mount('#app');
     </script>
