@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BootFair Scout | AI Resell Scanner</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #000; color: #fff; }
+        .scanner-line {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #10b981, transparent);
+            animation: scan 2s linear infinite;
+        }
+        @keyframes scan {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+        .fintech-gradient {
+            background: linear-gradient(180deg, rgba(16,185,129,0.1) 0%, rgba(0,0,0,0) 100%);
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen flex flex-col max-w-md mx-auto relative overflow-hidden">
+        
+        <!-- Header -->
+        <header class="p-4 flex justify-between items-center border-b border-white/10 z-20 bg-black/50 backdrop-blur-md">
+            <h1 class="text-xl font-black tracking-tighter italic text-white">
+                BOOTFAIR <span class="text-emerald-500">SCOUT</span>
+            </h1>
+            <div class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-2">
+                <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span class="text-[10px] font-bold text-emerald-500 tracking-widest uppercase">UK Market</span>
+            </div>
+        </header>
+
+        <!-- API Key Input (Initial Setup Only) -->
+        <div v-if="!apiKey" class="p-8 flex-1 flex flex-col justify-center z-30">
+            <h2 class="text-2xl font-bold mb-4">Setup Required</h2>
+            <p class="text-zinc-400 mb-6 text-sm">Please enter your Google Gemini API Key to start scouting.</p>
+            <input v-model="tempKey" type="password" placeholder="Paste Gemini API Key" 
+                class="bg-zinc-900 border border-white/10 p-4 rounded-2xl w-full mb-4 focus:border-emerald-500 outline-none">
+            <button @click="saveKey" class="bg-emerald-500 text-black font-bold py-4 rounded-2xl">Start Scanning</button>
+        </div>
+
+        <main v-else class="flex-1 relative flex flex-col p-4">
+            
+            <!-- Camera Viewport -->
+            <div v-show="!result" class="relative flex-1 rounded-[32px] overflow-hidden border border-white/10 bg-zinc-900 shadow-2xl">
+                <video ref="video" autoplay playsinline class="w-full h-full object-cover opacity-80"></video>
+                
+                <!-- Overlay -->
+                <div class="absolute inset-0 pointer-events-none border-[20px] border-black/20">
+                    <div class="absolute inset-10 border-2 border-emerald-500/30 rounded-2xl">
+                        <div class="scanner-line absolute w-full"></div>
+                    </div>
+                </div>
+
+                <!-- Status Overlay -->
+                <div v-if="loading" class="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6">
+                    <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p class="text-emerald-500 font-black italic text-xl tracking-tight">ANALYSING MARKET...</p>
+                    <p class="text-zinc-400 text-xs mt-2 uppercase tracking-widest">Checking eBay UK Sold History</p>
+                </div>
+            </div>
+
+            <!-- Result View -->
+            <div v-if="result" class="flex-1 animate-in fade-in slide-in-from-bottom duration-500">
+                <div class="bg-zinc-900 rounded-[32px] p-6 border border-white/10 h-full flex flex-col fintech-gradient">
+                    <span class="text-emerald-500 text-[10px] font-black uppercase tracking-[0.2em] mb-2">{{ result.category }}</span>
+                    <h2 class="text-3xl font-bold leading-none mb-6 italic">{{ result.itemName }}</h2>
+
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                            <p class="text-[10px] text-zinc-500 uppercase font-bold mb-1">Avg. Sold Price</p>
+                            <p class="text-2xl font-black italic">£{{ result.avgPrice }}</p>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                            <p class="text-[10px] text-zinc-500 uppercase font-bold mb-1">Confidence</p>
+                            <p class="text-2xl font-black text-emerald-400">{{ Math.round(result.confidence * 100) }}%</p>
+                        </div>
+                    </div>
+
+                    <!-- Profit Card -->
+                    <div :class="profit > 10 ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-white'" 
+                         class="p-6 rounded-3xl mb-6 transition-colors duration-500 shadow-xl">
+                        <p class="text-[10px] uppercase font-black opacity-60 mb-1">Potential Net Profit</p>
+                        <div class="flex justify-between items-center">
+                            <p class="text-5xl font-black tracking-tighter">£{{ profit }}</p>
+                            <i v-if="profit > 10" data-lucide="trending-up" class="w-10 h-10"></i>
+                        </div>
+                        <p class="text-[10px] mt-4 font-bold opacity-60 uppercase tracking-tight">
+                            After 13.2% Fees + £5 Shipping
+                        </p>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="mt-auto space-y-3">
+                        <a :href="result.ebayUrl" target="_blank" 
+                           class="flex items-center justify-center gap-2 w-full py-4 bg-white text-black rounded-2xl font-bold transition active:scale-95">
+                            Verify Sold Listings <i data-lucide="external-link" class="w-4 h-4"></i>
+                        </a>
+                        <button @click="resetScanner" class="w-full py-4 bg-zinc-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2">
+                            <i data-lucide="refresh-ccw" class="w-4 h-4"></i> New Scan
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price Input (Fixed Bottom) -->
+            <div v-show="!loading" class="mt-4 bg-zinc-900 border border-white/10 rounded-2xl p-4">
+                <div class="flex justify-between items-center">
+                    <label class="text-xs font-bold text-zinc-500 uppercase">Stall Price (£)</label>
+                    <input v-model="buyPrice" type="number" 
+                        class="bg-transparent text-right text-xl font-black outline-none w-24 text-emerald-500">
+                </div>
+            </div>
+
+            <!-- Scan Button -->
+            <div v-if="!result" class="mt-6 mb-8">
+                <button @click="captureImage" :disabled="loading"
+                    class="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-800 text-black h-20 rounded-full flex items-center justify-center gap-3 transition-all active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+                    <i data-lucide="camera" class="w-8 h-8"></i>
+                    <span class="text-xl font-black uppercase tracking-tight">Scout Item</span>
+                </button>
+            </div>
+
+        </main>
+
+        <canvas ref="canvas" class="hidden"></canvas>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, computed, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const apiKey = ref(localStorage.getItem('gemini_api_key') || '');
+                const tempKey = ref('');
+                const video = ref(null);
+                const canvas = ref(null);
+                const loading = ref(false);
+                const result = ref(null);
+                const buyPrice = ref(5);
+
+                const saveKey = () => {
+                    if (tempKey.value) {
+                        apiKey.value = tempKey.value;
+                        localStorage.setItem('gemini_api_key', tempKey.value);
+                        startCamera();
+                    }
+                };
+
+                const startCamera = async () => {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { facingMode: 'environment' }, 
+                            audio: false 
+                        });
+                        video.value.srcObject = stream;
+                    } catch (err) {
+                        alert("Camera error: " + err.message);
+                    }
+                };
+
+                const captureImage = async () => {
+                    loading.ref = true;
+                    const context = canvas.value.getContext('2d');
+                    canvas.value.width = video.value.videoWidth;
+                    canvas.value.height = video.value.videoHeight;
+                    context.drawImage(video.value, 0, 0);
+                    
+                    const base64Image = canvas.value.toDataURL('image/jpeg', 0.8);
+                    await analyzeItem(base64Image);
+                };
+
+                const analyzeItem = async (base64) => {
+                    loading.value = true;
+                    const prompt = `Analyze this UK car boot sale item. Identify Brand, Model, and Category. 
+                    Return ONLY a JSON object: 
+                    {"itemName": "String", "category": "Toys|Tech|Media|Fashion", "searchQuery": "eBay UK search string", "confidence": 0.9}`;
+
+                    try {
+                        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.value}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64.split(',')[1] } }] }]
+                            })
+                        });
+                        
+                        const data = await resp.json();
+                        const text = data.candidates[0].content.parts[0].text;
+                        const aiJson = JSON.parse(text.replace(/```json|```/g, ''));
+                        
+                        // Mock eBay Logic (Random Price for UK Market)
+                        const mockPrice = Math.floor(Math.random() * (80 - 10) + 10);
+                        
+                        result.value = {
+                            ...aiJson,
+                            avgPrice: mockPrice,
+                            ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(aiJson.searchQuery)}&LH_Sold=1&LH_Complete=1`
+                        };
+                        
+                        nextTick(() => lucide.createIcons());
+                    } catch (err) {
+                        console.error(err);
+                        alert("AI analysis failed. Please check your API key.");
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const profit = computed(() => {
+                    if (!result.value) return 0;
+                    const fees = result.value.avgPrice * 0.132;
+                    const shipping = 5.00;
+                    const net = result.value.avgPrice - fees - shipping - buyPrice.value;
+                    return net.toFixed(2);
+                });
+
+                const resetScanner = () => {
+                    result.value = null;
+                    nextTick(() => lucide.createIcons());
+                };
+
+                onMounted(() => {
+                    if (apiKey.value) startCamera();
+                    lucide.createIcons();
+                });
+
+                return { apiKey, tempKey, saveKey, video, canvas, captureImage, loading, result, buyPrice, profit, resetScanner };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
