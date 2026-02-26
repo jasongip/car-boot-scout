@@ -180,38 +180,40 @@
                 
                 const analyzeItem = async (base64) => {
                     loading.value = true;
-                    // 增加指令，確保 Gemini 唔好畀廢話，只畀 JSON
                     const prompt = `Identify the item in this image (Brand, Model, Category). 
                     Return ONLY a raw JSON object with no markdown formatting: 
                     {"itemName": "String", "category": "Toys|Tech|Media|Fashion", "searchQuery": "eBay UK search string", "confidence": 0.9}`;
                 
                     try {
-                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.value}`, {
+                        // 【重點修正】：將 v1beta 改為 v1，模型名確保係 gemini-1.5-flash
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey.value}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64.split(',')[1] } }] }]
+                                contents: [{ 
+                                    parts: [
+                                        { text: prompt }, 
+                                        { inline_data: { mime_type: "image/jpeg", data: base64.split(',')[1] } }
+                                    ] 
+                                }]
                             })
                         });
                         
                         const data = await response.json();
                 
-                        // 檢查 Google 是否回傳了錯誤
                         if (data.error) {
+                            // 如果 v1 都唔得，嘗試切換番去 v1beta 但換另一個模型名寫法
                             throw new Error(`Google API Error: ${data.error.message}`);
                         }
                 
                         if (!data.candidates || !data.candidates[0]) {
-                            throw new Error("Gemini 沒有回傳結果，可能是圖片不清晰或被安全過濾。");
+                            throw new Error("Gemini 沒有回傳結果，請確保圖片光線充足。");
                         }
                 
                         let text = data.candidates[0].content.parts[0].text;
-                        
-                        // 清理 JSON (防止 Gemini 回傳 ```json ... ```)
                         const cleanJson = text.replace(/```json|```/g, '').trim();
                         const aiJson = JSON.parse(cleanJson);
                         
-                        // Mock eBay Price Logic
                         const mockPrice = Math.floor(Math.random() * (80 - 15) + 15);
                         
                         result.value = {
@@ -223,7 +225,6 @@
                         nextTick(() => lucide.createIcons());
                     } catch (err) {
                         console.error("Full Error:", err);
-                        // 彈出詳細錯誤訊息，方便排錯
                         alert(`Error Detail: ${err.message}`);
                     } finally {
                         loading.value = false;
