@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Scout Pro V11 | Deep Scan</title>
+    <title>BootFair Scout V12 | Anti-Block</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -11,17 +11,19 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; background: #000; color: #fff; touch-action: manipulation; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .flash-card { min-width: 260px; background: #111; border-radius: 24px; border: 1px solid #333; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .flash-card { min-width: 260px; background: #111; border-radius: 28px; border: 1px solid #222; overflow: hidden; }
+        .scan-anim { height: 2px; background: #10b981; position: absolute; width: 100%; animation: scan 2s infinite; box-shadow: 0 0 15px #10b981; }
+        @keyframes scan { 0% { top: 10%; opacity: 0; } 50% { opacity: 1; } 100% { top: 90%; opacity: 0; } }
     </style>
 </head>
 <body class="bg-black">
-    <div id="app" class="min-h-screen max-w-md mx-auto flex flex-col relative">
+    <div id="app" class="min-h-screen max-w-md mx-auto flex flex-col relative overflow-hidden">
         
         <!-- Setup Screen -->
         <div v-if="!config" class="p-8 flex-1 flex flex-col justify-center animate-in fade-in bg-zinc-950">
-            <h1 class="text-4xl font-black italic text-emerald-500 mb-2 tracking-tighter uppercase italic">Scout Pro</h1>
-            <div class="space-y-4 mt-10">
-                <input v-model="tempKey" type="password" placeholder="API Key" class="bg-zinc-900 border border-white/10 p-5 rounded-3xl w-full outline-none focus:border-emerald-500 text-lg">
+            <h1 class="text-4xl font-black italic text-emerald-500 mb-2 tracking-tighter uppercase italic">Scout Engine</h1>
+            <div class="space-y-4 mt-10 text-center">
+                <input v-model="tempKey" type="password" placeholder="Google API Key" class="bg-zinc-900 border border-white/10 p-5 rounded-3xl w-full outline-none focus:border-emerald-500 text-lg">
                 <div v-if="tempKey" class="flex gap-2">
                     <select v-model="selectedModel" class="flex-1 bg-zinc-900 border border-white/10 p-4 rounded-2xl outline-none text-sm appearance-none">
                         <option value="" disabled>Choose Model</option>
@@ -29,14 +31,14 @@
                     </select>
                     <button @click="fetchModels" class="bg-zinc-800 px-6 rounded-2xl font-bold border border-white/10 text-[10px] uppercase">Fetch</button>
                 </div>
-                <button v-if="selectedModel" @click="saveSetup" class="bg-emerald-500 text-black font-black py-5 rounded-3xl w-full uppercase tracking-widest text-lg shadow-xl shadow-emerald-500/20 active:scale-95 transition-all">Launch</button>
+                <button v-if="selectedModel" @click="saveSetup" class="bg-emerald-500 text-black font-black py-5 rounded-3xl w-full uppercase tracking-widest text-lg shadow-xl shadow-emerald-500/20">Launch</button>
             </div>
         </div>
 
         <template v-else>
             <!-- Header -->
             <header class="p-4 flex justify-between items-center bg-black/80 backdrop-blur-lg border-b border-white/5 sticky top-0 z-50">
-                <h1 class="font-black italic tracking-tighter text-lg uppercase italic leading-none">Scout <span class="text-emerald-500">v11</span></h1>
+                <h1 class="font-black italic tracking-tighter text-lg uppercase italic leading-none">Scout <span class="text-emerald-500">v12</span></h1>
                 <button @click="resetConfig" class="text-[9px] text-zinc-700 font-bold uppercase underline">Reset</button>
             </header>
 
@@ -48,70 +50,78 @@
                     <div v-if="loading" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center p-10 z-50">
                         <div class="w-12 h-12 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-6"></div>
                         <h3 class="text-xl font-black italic text-emerald-500 mb-2 uppercase tracking-tighter">{{ loadingStep }}</h3>
-                        <p class="text-zinc-600 text-[10px] font-bold uppercase tracking-[0.3em] animate-pulse">Deep scanning 50+ sold listings...</p>
+                        <p class="text-zinc-600 text-[10px] font-bold uppercase tracking-[0.3em] animate-pulse">Routing through secure proxies...</p>
                     </div>
 
-                    <div v-if="!loading" class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div class="w-64 h-80 border border-emerald-500/20 rounded-[40px]"></div>
+                    <div v-if="!loading" class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                        <div class="w-64 h-80 border border-emerald-500/20 rounded-[40px] relative">
+                            <div class="scan-anim"></div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Result View -->
-                <div v-if="result" class="flex-1 overflow-y-auto pb-24 animate-in slide-in-from-bottom duration-500">
-                    <div class="mb-6 px-2">
-                        <span class="text-emerald-500 text-[10px] font-black uppercase tracking-[0.3em] bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 italic">{{ result.category }}</span>
-                        <h2 class="text-3xl font-black italic leading-tight mt-3 tracking-tighter">{{ result.itemName }}</h2>
+                <div v-if="result" class="flex-1 overflow-y-auto pb-24 animate-in slide-in-from-bottom duration-500 px-1">
+                    <div class="mb-6 flex justify-between items-start">
+                        <div>
+                            <span class="text-emerald-500 text-[10px] font-black uppercase tracking-[0.3em] bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">{{ result.category }}</span>
+                            <h2 class="text-3xl font-black italic leading-tight mt-3 tracking-tighter">{{ result.itemName }}</h2>
+                        </div>
                     </div>
 
-                    <!-- Market Comparison Cards -->
-                    <div class="mb-8 px-2">
+                    <!-- Comparison Section -->
+                    <div v-if="result.topMatches && result.topMatches.length" class="mb-8">
                         <p class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <i data-lucide="layers" class="w-3 h-3 text-emerald-500"></i> Market Sold Proof
+                            <i data-lucide="layers" class="w-3 h-3 text-emerald-500"></i> Sold Comparison
                         </p>
                         <div class="flex gap-4 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-2">
-                            <div v-for="(l, idx) in result.topMatches" :key="idx" class="flash-card flex flex-col">
-                                <img :src="l.img" class="w-full h-48 object-cover bg-zinc-900 shadow-inner" onerror="this.src='https://placehold.co/400x400/000/FFF?text=Image+Blocked'">
+                            <div v-for="l in result.topMatches" :key="l.img" class="flash-card flex flex-col">
+                                <img :src="l.img" class="w-full h-48 object-cover bg-zinc-900" onerror="this.src='https://placehold.co/400x400/111/333?text=Photo+Unavailable'">
                                 <div class="p-5 flex-1 flex flex-col justify-between">
-                                    <p class="text-[10px] text-zinc-400 font-bold uppercase line-clamp-2 h-7 leading-tight mb-4 tracking-tight">
-                                        {{ l.title }}
-                                    </p>
+                                    <p class="text-[10px] text-zinc-400 font-bold uppercase line-clamp-2 h-7 leading-tight mb-4 tracking-tight">{{ l.title }}</p>
                                     <div class="flex justify-between items-end">
-                                        <p class="text-3xl font-black italic text-emerald-400 leading-none tracking-tighter">£{{ l.price }}</p>
-                                        <div :class="l.score > 0.5 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-zinc-800 text-zinc-500'" class="text-[8px] px-2 py-1 rounded font-black italic uppercase tracking-tighter italic">
-                                            Match: {{ Math.round(l.score * 100) }}%
-                                        </div>
+                                        <p class="text-3xl font-black italic text-emerald-400 leading-none">£{{ l.price }}</p>
+                                        <div class="text-[8px] bg-zinc-800 text-zinc-500 px-2 py-1 rounded font-black italic uppercase tracking-tighter italic">Match: {{ Math.round(l.score * 100) }}%</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Profit Summary Card -->
-                    <div class="px-2">
-                        <div :class="profit > 15 ? 'bg-emerald-500 text-black shadow-emerald-500/40' : 'bg-zinc-800 text-white'" class="p-8 rounded-[40px] mb-8 shadow-2xl relative transition-all duration-500">
-                            <div class="flex justify-between items-end">
-                                <div>
-                                    <p class="text-[10px] uppercase font-black opacity-60 mb-1 leading-none tracking-widest italic text-center">Net Profit Est.</p>
-                                    <p class="text-7xl font-black tracking-tighter italic leading-none">£{{ profit }}</p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-[9px] uppercase font-black opacity-60 mb-1 leading-none">Mean Price</p>
-                                    <p class="text-2xl font-black italic tracking-tighter leading-none">£{{ result.avgPrice }}</p>
-                                </div>
+                    <!-- Fallback Alert -->
+                    <div v-if="result.isFallback" class="bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl mb-6 flex items-start gap-3">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-500 shrink-0"></i>
+                        <p class="text-[10px] text-amber-200 leading-relaxed font-bold uppercase tracking-tight">
+                            eBay access restricted. Price below is an AI estimate based on current market knowledge. Please verify manually.
+                        </p>
+                    </div>
+
+                    <!-- Profit Summary -->
+                    <div :class="profit > 15 ? 'bg-emerald-500 text-black shadow-emerald-500/40' : 'bg-zinc-800 text-white'" class="p-8 rounded-[40px] mb-8 shadow-2xl relative transition-all duration-500">
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <p class="text-[10px] uppercase font-black opacity-60 mb-1 leading-none tracking-widest">Est. Profit</p>
+                                <p class="text-7xl font-black tracking-tighter italic leading-none">£{{ profit }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[9px] uppercase font-black opacity-60 mb-1 leading-none tracking-widest">Market Avg</p>
+                                <p class="text-2xl font-black italic tracking-tighter leading-none">£{{ result.avgPrice }}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="space-y-3 px-2">
-                        <a :href="result.ebayUrl" target="_blank" class="flex items-center justify-center gap-3 w-full py-5 bg-white text-black rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl">Full Sold History <i data-lucide="external-link" class="w-4 h-4"></i></a>
-                        <button @click="resetScanner" class="w-full py-5 bg-zinc-900 text-white rounded-3xl font-black uppercase text-xs tracking-widest">New Scout</button>
+                    <div class="space-y-3">
+                        <a :href="result.ebayUrl" target="_blank" class="flex items-center justify-center gap-3 w-full py-5 bg-white text-black rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl">
+                            Verify on eBay UK <i data-lucide="external-link" class="w-4 h-4"></i>
+                        </a>
+                        <button @click="resetScanner" class="w-full py-5 bg-zinc-900 text-zinc-500 rounded-3xl font-black uppercase text-xs tracking-widest">Scan Next</button>
                     </div>
                 </div>
 
-                <!-- Footer Inputs -->
+                <!-- Footer -->
                 <div v-show="!result" class="mt-4 flex flex-col gap-4">
-                    <div class="bg-zinc-900 border border-white/5 rounded-[30px] p-5 flex justify-between items-center px-8 shadow-xl">
-                        <span class="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none italic tracking-tighter">Buy At Stall (£)</span>
+                    <div class="bg-zinc-900 border border-white/5 rounded-[30px] p-5 flex justify-between items-center px-8">
+                        <span class="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none italic">Cost at Stall (£)</span>
                         <input v-model="buyPrice" type="number" class="bg-transparent text-right text-3xl font-black outline-none w-24 text-white">
                     </div>
                     <button @click="captureImage" :disabled="loading" class="w-full bg-emerald-500 text-black h-24 rounded-full flex items-center justify-center gap-4 active:scale-95 shadow-[0_20px_60px_rgba(16,185,129,0.3)] transition-all">
@@ -150,7 +160,7 @@
                         const d = await r.json();
                         availableModels.value = d.models.filter(m => m.supportedGenerationMethods.includes('generateContent'));
                         if (availableModels.value.length) selectedModel.value = availableModels.value[0].name;
-                    } catch (e) { alert("Key Error"); }
+                    } catch (e) { alert("API Error"); }
                 };
 
                 const saveSetup = () => {
@@ -164,10 +174,10 @@
                     try {
                         const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                         video.value.srcObject = s;
-                    } catch (e) { alert("Camera Access Required."); }
+                    } catch (e) { alert("Camera Error"); }
                 };
 
-                const calculateSimilarity = (title, target) => {
+                const getSimilarityScore = (title, target) => {
                     const t = title.toLowerCase();
                     const words = target.toLowerCase().split(/\W+/).filter(w => w.length > 2);
                     let matches = 0;
@@ -181,76 +191,86 @@
                     loadingStep.value = "AI Identifying...";
                     
                     const ctx = canvas.value.getContext('2d', { alpha: false });
-                    const scale = 500 / video.value.videoWidth;
-                    canvas.value.width = 500;
+                    const scale = 512 / video.value.videoWidth;
+                    canvas.value.width = 512;
                     canvas.value.height = video.value.videoHeight * scale;
-                    ctx.drawImage(video.value, 0, 0, 500, canvas.value.height);
+                    ctx.drawImage(video.value, 0, 0, 512, canvas.value.height);
                     const b64 = canvas.value.toDataURL('image/jpeg', 0.5);
                     
                     try {
                         const genAI = new GoogleGenerativeAI(config.value.key);
                         const model = genAI.getGenerativeModel({ model: config.value.model.split('/')[1] });
                         
-                        const prompt = `Identify this item for UK resale. Return RAW JSON only: {"itemName": "Brand Model", "category": "Tech|Toys|Media", "searchQuery": "ebay uk search keywords"}`;
+                        // Ask AI for estimation as backup
+                        const prompt = `Identify this item. Return JSON: {"itemName": "Brand Model", "searchQuery": "eBay UK search keywords", "category": "...", "aiEstimate": 25}`;
                         const res = await model.generateContent([prompt, { inlineData: { data: b64.split(',')[1], mimeType: "image/jpeg" } }]);
                         const ai = JSON.parse((await res.response).text().replace(/```json|```/g, ''));
 
-                        loadingStep.value = "Deep Scraping eBay...";
-                        const ebay = await fetchEbayDeep(ai.searchQuery, ai.itemName);
+                        loadingStep.value = "eBay Deep Search...";
+                        const ebay = await fetchEbayWithRotation(ai.searchQuery, ai.itemName);
                         
-                        result.value = { 
-                            ...ai, 
-                            topMatches: ebay.topMatches,
-                            avgPrice: ebay.avg, 
-                            ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(ai.searchQuery)}&LH_Sold=1&LH_Complete=1` 
-                        };
+                        if (ebay) {
+                            result.value = { ...ai, topMatches: ebay.top3, avgPrice: ebay.avg, isFallback: false, ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(ai.searchQuery)}&LH_Sold=1&LH_Complete=1` };
+                        } else {
+                            // Fallback to AI estimate if all proxies fail
+                            result.value = { ...ai, topMatches: [], avgPrice: ai.aiEstimate.toFixed(2), isFallback: true, ebayUrl: `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(ai.searchQuery)}&LH_Sold=1&LH_Complete=1` };
+                        }
                     } catch (err) { alert(`Error: ${err.message}`); }
                     finally { loading.value = false; nextTick(() => lucide.createIcons()); }
                 };
 
-                const fetchEbayDeep = async (query, itemName) => {
-                    try {
-                        const target = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1`;
-                        const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(target)}`, { signal: AbortSignal.timeout(12000) });
-                        const html = await r.text();
-                        
-                        // 【V11 改良】：先拆分整個商品列表
-                        const itemBlocks = html.split('class="s-item__info clearfix"').slice(1);
-                        const listings = [];
+                const fetchEbayWithRotation = async (query, itemName) => {
+                    const targetUrl = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1`;
+                    
+                    // Proxy List
+                    const proxies = [
+                        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+                        `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
+                        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`
+                    ];
 
-                        itemBlocks.forEach(block => {
-                            try {
-                                const priceMatch = block.match(/£(\d+\.\d{2})/);
-                                const imgMatch = block.match(/src="(https:\/\/i\.ebayimg\.com\/images\/g\/[^"]+)"/);
-                                const titleMatch = block.match(/class="s-item__title">.*?<span>(.*?)<\/span>/);
+                    for (let proxy of proxies) {
+                        try {
+                            const r = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+                            let html = "";
+                            if (proxy.includes('allorigins')) {
+                                const json = await r.json();
+                                html = json.contents;
+                            } else {
+                                html = await r.text();
+                            }
 
-                                if (priceMatch && titleMatch) {
-                                    const title = titleMatch[1].replace(/<[^>]*>/g, '');
-                                    const score = calculateSimilarity(title, itemName);
-                                    listings.push({
-                                        price: parseFloat(priceMatch[1]),
-                                        img: imgMatch ? imgMatch[1] : '',
-                                        title: title,
-                                        score: score
-                                    });
-                                }
-                            } catch (e) {}
-                        });
+                            if (html.includes('s-item__title')) {
+                                const parsed = parseEbayHtml(html, itemName);
+                                if (parsed && parsed.top3.length > 0) return parsed;
+                            }
+                        } catch (e) { console.warn("Proxy failed:", proxy); }
+                    }
+                    return null; // All proxies failed
+                };
 
-                        if (listings.length === 0) throw new Error("eBay results blocked or no items found.");
+                const parseEbayHtml = (html, itemName) => {
+                    const listings = [];
+                    // Using broader regex to capture info blocks
+                    const itemBlocks = html.split('s-item__info').slice(1);
 
-                        // 按相似度排序
-                        const sorted = listings.sort((a, b) => b.score - a.score);
-                        
-                        // 【V11 改良】：不報錯，即使分數低也顯示前 5 個
-                        const topMatches = sorted.slice(0, 5);
-                        
-                        // 計算平均值 (取前 10 個最相似的結果平均，避免垃圾干擾)
-                        const filteredForAvg = sorted.slice(0, 10);
-                        const avg = (filteredForAvg.reduce((s, x) => s + x.price, 0) / filteredForAvg.length).toFixed(2);
-                        
-                        return { topMatches, avg };
-                    } catch (e) { throw e; }
+                    itemBlocks.forEach(block => {
+                        const priceMatch = block.match(/£(\d+\.\d{2})/);
+                        const imgMatch = block.match(/src="(https:\/\/i\.ebayimg\.com\/images\/g\/[^"]+)"/);
+                        const titleMatch = block.match(/s-item__title">.*?<span>(.*?)<\/span>/);
+
+                        if (priceMatch && titleMatch) {
+                            const title = titleMatch[1].replace(/<[^>]*>/g, '');
+                            const score = getSimilarityScore(title, itemName);
+                            listings.push({ price: parseFloat(priceMatch[1]), img: imgMatch ? imgMatch[1] : '', title, score });
+                        }
+                    });
+
+                    if (!listings.length) return null;
+                    const sorted = listings.sort((a, b) => b.score - a.score);
+                    const top3 = sorted.slice(0, 5);
+                    const avg = (sorted.slice(0, 10).reduce((s, x) => s + x.price, 0) / Math.min(sorted.length, 10)).toFixed(2);
+                    return { top3, avg };
                 };
 
                 const profit = computed(() => {
